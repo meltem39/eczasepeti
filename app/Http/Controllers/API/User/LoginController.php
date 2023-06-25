@@ -65,4 +65,24 @@ class LoginController extends BaseController
             return $this->sendError('Unauthorised.', ['error'=>'Unauthorised']);
         }
     }
+
+    public function profile() {
+        $login_user = $this->loginUser("user-api");
+        $user = User::all()->where('id',$login_user->id)->first();
+        return $this->sendResponse($user,'Profile');
+    }
+
+    public function updateprofile(Request $request){
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'mobile' => 'required'
+        ]);
+        if($validator->fails()){
+            return $this->sendError('Validation Error.', $validator->errors());
+        }
+        $login_user = $this->loginUser("user-api");
+        $input = $request->all();
+        $update = User::all()->where('id',$login_user->id)->first()->update(['email' => $input["email"] , 'mobile' => $input['mobile']]);
+        return $this->sendResponse($update,'Profile updated');
+    }
 }

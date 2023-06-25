@@ -15,6 +15,7 @@ class Shopping extends Model
         "prescription_id",
         "is_medicine",
         "content",
+        "nonmedicine_content",
         "status",
         "total",
         "SGK_total",

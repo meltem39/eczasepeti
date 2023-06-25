@@ -17,6 +17,12 @@ class ShoppingController extends BaseController
         $this->shoppingRepository = $shoppingRepository;
     }
 
+    public function myOrders() {
+        $login_user = $this->loginUser("user-api");
+        $orders = $this->shoppingRepository->myOrders($login_user->id);
+        return $this->sendResponse($orders,"Siparislerim");
+    }
+
     public function basketDetail(){
         $login_user = $this->loginUser("user-api");
         $basket = $this->shoppingRepository->basketDetail($login_user->id);

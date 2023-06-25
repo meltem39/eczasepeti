@@ -16,6 +16,7 @@ use App\Models\Prescriptions;
 use App\Models\Shopping;
 use App\Models\User;
 use App\Repositories\EloquentBaseRepository;
+use Exception;
 use JasonGuru\LaravelMakeRepository\Repository\BaseRepository;
 //use Your Model
 
@@ -43,11 +44,28 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
         parent::__construct($this->model);
     }
 
-    public function detail($basket, $medicines, $total = 0, $SGK_total = 0,$isUser){
+    public function myOrders($user_id) {
+        $taken_list = $this->orderModel->where("user_id", $user_id)->where("order_status", "taken")->get();
+        $preparing_list = $this->orderModel->where("user_id", $user_id)->where("order_status", "preparing")->get();
+        $on_the_way_list = $this->orderModel->where("user_id", $user_id)->where("order_status", "on_the_way")->get();
+        $delivered_list = $this->orderModel->where("user_id", $user_id)->where("order_status", "delivered")->get();
+        $canceled_list = $this->orderModel->where("user_id", $user_id)->where("order_status", "canceled")->get();
+        $list = [
+            "taken" => $taken_list,
+            "preparing" => $preparing_list,
+            "on_the_way" => $on_the_way_list,
+            "delivered" => $delivered_list,
+            "canceled" => $canceled_list,
+        ];
+
+        return $list;
+    }
+
+    public function detail($basket, $medicines,$prescriptionlessMedicines, $total = 0, $SGK_total = 0,$isUser){
         $detail  = array();
         switch ($basket->is_medicine){
             case "0":
-                foreach ($medicines as $content){
+                foreach ($prescriptionlessMedicines as $content){
                     $non_medicine = NonMedicine::whereId($content)->first()->makeHidden("created_at", "updated_at", "type", "name", "prescription");
                     $non_medicine["data"] = env("APP_URL") . "/files/pharmacy/".$basket->pharmacy_id."/non_medical_image/". $non_medicine["data"];
                     $non_medicine["pharmacy_id"] = PharmacyList::whereId($non_medicine["pharmacy_id"])->select("id","name")->first();
@@ -57,9 +75,20 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
                     array_push($detail, $non_medicine);
                     $total = $total + $non_medicine["fee"];
                 }
+                foreach ($medicines as $content){
+                    $medicine = Medicine::whereId($content)->first()->makeHidden("created_at", "updated_at", "prescription");
+
+                    $medicine["pharmacy_id"] = PharmacyList::whereId($medicine["pharmacy_id"])->select("id","name")->first();
+                    $medicine["medicine_category_id"] = MedicineCategory::whereId($medicine["medicine_category_id"])->select("id", "category_name")->first();
+                    $medicine["medicine_sub_category_id"] = MedicineSubCategory::whereId($medicine["medicine_sub_category_id"])->select("id", "sub_category_name")->first();
+                    $medicine["medicine_form_id"] = MedicineForm::whereId($medicine["medicine_form_id"])->select("id", "form_name")->first();
+                    array_push($detail, $medicine);
+                    $total = $total + $medicine["fee"];
+                }
                 if($isUser) {
                     $detail["basket_id"] = $basket->id;
                     $detail["total_fee"] = $total;
+                    $detail["total_SGK_fee"] = $total;
                 }
 
                 return $detail;
@@ -112,16 +141,21 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
         $basket = $this->model->where("user_id", $user_id)->where("status", "adding")->first();
         if ($basket){
             $content = json_decode($basket->content);
+            $content2 = json_decode($basket->nonmedicine_content);
             $medicines = array();
             foreach ((array)$content as $value) {
                 $medicines[] = $value;
             }
-            $detail = $this->detail($basket, $medicines,0,0,true);
+            $presmedicines = array();
+            foreach ((array)$content2 as $value) {
+                $presmedicines[] = $value;
+            }
+            $detail = $this->detail($basket, $medicines,$presmedicines,0,0,true);
             return $detail;
         }
         return false;
     }
-
+    //TODO
     public function addBasket($user_id, $data){
         $total = 0;
         $SGK_total = 0;
@@ -142,7 +176,8 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
                 $data["total"] = $total;
                 $data["user_id"] = $user_id;
                 $data["status"] = "adding";
-                $data["content"] = json_encode($data["content"]);
+                $data["content"] = json_encode($data["medicine_content"]);
+                $data["nonmedicine_content"] = json_encode($data["non_medicine_content"]);
                 $control = $this->model->where("user_id", $user_id)->where("status", "adding")->first();
                 if ($control)
                     $this->model->whereId($control->id)->update(["status" => "cancelled"]);
@@ -262,8 +297,12 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
             if ($shopping->prescription_id)
                 Prescriptions::whereId($shopping->prescription_id)->update(["status" =>"0"]);
             $shopping->update(["status" => "cancelled"]);
-            $carrier_id = $data["carrier_id"];
-            $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "wait"]);
+            try {
+                $carrier_id = $data["carrier_id"];
+                $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "wait"]);
+            } catch (Exception $e) {
+
+            }
             return $update;
         }
         return false;
@@ -271,13 +310,18 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
 
     public function orderDetail($order_id){
         $info = $this->orderModel->whereId($order_id)->first()->makeHidden("created_at", "updated_at");
-        $basket = $this->model->whereId($info->basket_id)->select("is_medicine", "prescription_id", "content","id")->first();
+        $basket = $this->model->whereId($info->basket_id)->select("is_medicine", "prescription_id", "content","nonmedicine_content","id")->first();
         $content = json_decode($basket->content);
         $medicines = array();
         foreach ((array)$content as $value) {
             $medicines[] = $value;
         }
-        $detail = $this->detail($basket, $medicines,0,0,false);
+        $content2 = json_decode($basket->nonmedicine_content);
+        $presmedicines = array();
+        foreach ((array)$content2 as $value) {
+            $presmedicines[] = $value;
+        }
+        $detail = $this->detail($basket, $medicines,$presmedicines,0,0,false);
         $basketdetail = [];
         foreach ($detail as $value) {
             $basketdetail[] = $value;

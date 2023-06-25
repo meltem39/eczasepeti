@@ -23,6 +23,8 @@ Route::post('user/login', [LoginController::class, "login"]);
 
 Route::middleware(['auth:user-api','scopes:user'])->group(function () {
     Route::group(["namespace" => "user", "prefix" => "user"], function () {
+        Route::get('profile',[LoginController::class, "profile"]);
+        Route::post("profile/update",[LoginController::class, "updateprofile"]);
         Route::group(["namespace" => "list", "prefix" => "list"], function (){
            Route::get("pharmacy/{address}", [ListController::class, "pharmacyList"]);
            Route::get("prescription", [ListController::class, "prescriptionList"]);
@@ -41,6 +43,7 @@ Route::middleware(['auth:user-api','scopes:user'])->group(function () {
         Route::group(["namespace" => "shopping", "prefix" => "shopping"], function () {
             Route::get("basket", [ShoppingController::class, "basketDetail"]);
             Route::get("order/{order_id}", [ShoppingController::class, "orderDetail"]);
+            Route::get("orders", [ShoppingController::class, "myOrders"]);
             Route::post("add", [ShoppingController::class, "addBasket"]);
             Route::post("buy/{basket_id}", [ShoppingController::class, "buyBasket"]);
             Route::post("cancel/{order_id}", [ShoppingController::class, "cancelOrder"]);
