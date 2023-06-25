@@ -28,7 +28,8 @@ Route::middleware(['auth:user-api','scopes:user'])->group(function () {
            Route::get("prescription", [ListController::class, "prescriptionList"]);
            Route::get("category/{pharmacy_id}", [ListController::class, "categoryList"]);
            Route::get("sub_category/{category_id}", [ListController::class, "subCategoryList"]);
-           Route::get("non_medicine/{sub_category}/{pharmacy_id}", [ListController::class, "nonMedicineList"]);
+           Route::get("non_medicine/{pharmacy_id}/{sub_category}", [ListController::class, "nonMedicineList"]);
+           Route::get("non_medicines/{pharmacy_id}", [ListController::class, 'getNonMedicines']);
         });
 
         Route::group(["namespace" => "medicine", "prefix" => "medicine"], function () {

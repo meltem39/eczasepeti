@@ -69,6 +69,8 @@ class ListRepository extends EloquentBaseRepository implements ListRepositoryInt
         date_default_timezone_set('Etc/GMT-3');
         $prescArray = array();
         foreach ($prescriptions as $presc) {
+            $date = date('d-m-Y h:i:s', strtotime($presc["created_at"]));
+            $presc["create_date"] = $date;
             $compare_date = Carbon::parse($presc->expiry_date)->gt(Carbon::now());
             if ($compare_date) {
                 $temp = json_decode($presc['medicines']);
@@ -78,6 +80,8 @@ class ListRepository extends EloquentBaseRepository implements ListRepositoryInt
                     $medicines[] = $value;
                 }
                 $presc['medicines'] =  $medicines;
+                $date_expiry = date('d-m-Y h:i:s', strtotime($presc["expiry_date"]));
+                $presc["expiry_date"] = $date_expiry;
                 $prescArray[] = $presc;
             }
         }
@@ -113,6 +117,11 @@ class ListRepository extends EloquentBaseRepository implements ListRepositoryInt
 
     public function nonMedicine($sub_medical_id, $id){
         $list = $this->nonMedicineModel::where("non_medical_sub_category_id", $sub_medical_id)->where("pharmacy_id", $id)->get()->makeHidden(["created_at", "updated_at"]);
+        return $list;
+    }
+
+    public function getNonMedicines($id) {
+        $list = $this->medicineModel::where("pharmacy_id", $id)->where("prescription","1")->get()->makeHidden(["created_at", "updated_at"]);
         return $list;
     }
 }

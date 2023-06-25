@@ -29,6 +29,10 @@ class MedicineController extends BaseController
             return $this->sendError("hata", "cannot find medicine or alternative");
     }
 
+//    public function searchNonMedicine(){
+//
+//    }
+
     public function prescriptionDetail($pharmacy_id ,$name){
         $login_user = $this->loginUser("user-api");
         $find = $this->prescriptionRepository->detail($name, $login_user->id);

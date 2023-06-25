@@ -61,6 +61,15 @@ return [
             'provider' => 'pharmacies',
         ],
 
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'admins',
+        ],
+
+        'admin-api' => [
+            'driver' => 'passport',
+            'provider' => 'admins',
+        ],
         // TODO API NAME DRIVER AND PROVIDER
     ],
     /*
@@ -89,6 +98,11 @@ return [
         'pharmacies' => [
             'driver' => 'eloquent',
             'model' => App\Models\Pharmacy::class,
+        ],
+
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
         ],
 // TODO MODEL NAME
         // 'users' => [

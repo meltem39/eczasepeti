@@ -85,16 +85,18 @@ class LoginController extends BaseController
             return $this->sendError('Validation Error.', $validator->errors());
         }
 
-
-
         if(auth()->guard('pharmacy')->attempt(['email' => request('email'), 'password' => request('password')])) {
             config(['auth.guards.api.provider' => 'pharmacy']);
 
             $user = Pharmacy::select('pharmacies.*')->find(auth()->guard('pharmacy')->user()->id);
-            $success['token'] =  $user->createToken('MyApp', ['pharmacy'])-> accessToken;
-            $success['name_surname'] =  $user->name. " ". $user->surname;
-            $success['mobile'] = $user->mobile;
-            return $this->sendResponse($success, 'Login successfully.');
+            if($user->status == "accept"){
+                $success['token'] =  $user->createToken('MyApp', ['pharmacy'])-> accessToken;
+                $success['name_surname'] =  $user->name. " ". $user->surname;
+                $success['mobile'] = $user->mobile;
+                return $this->sendResponse($success, 'Login successfully.');
+            }
+            return $this->sendNegativeResponse("user not accepted");
+
         }
         else{
             return $this->sendError('Unauthorised.', ['error'=>'Unauthorised']);

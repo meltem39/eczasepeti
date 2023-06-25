@@ -37,6 +37,7 @@ class AuthServiceProvider extends ServiceProvider
         Passport::tokensCan([
             'user' => 'User Type',
             'pharmacy' => 'Pharmacy User Type',
+            'admin' => 'Admin User Type',
             // TODO API MODEL NAME
         ]);
     }

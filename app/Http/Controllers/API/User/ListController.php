@@ -25,6 +25,12 @@ class ListController extends BaseController
         return $this->sendNegativeResponse('Pharmacy not found');
     }
 
+    public function getNonMedicines($pharmacy_id) {
+        $login_user = $this->loginUser("user-api");
+        $list = $this->listRepository->getNonMedicines($pharmacy_id);
+        return $this->sendResponse($list,"NonMedicines List");
+    }
+
     public function prescriptionList(){
         //try {
             $login_user = $this->loginUser("user-api");
@@ -64,24 +70,24 @@ class ListController extends BaseController
 
     public function addressList(){
         $address = [
-            "ALTAYÇEŞME",
-            "ALTINTEPE",
-            "AYDINEVLER",
-            "BAĞLARBAŞI",
-            "BAŞIBÜYÜK",
-            "BÜYÜKBAKKALKÖY",
-            "CEVİZLİ",
-            "ÇINAR",
-            "ESENKENT",
-            "FEYZULLAH",
-            "FINDIKLI",
-            "GİRNE",
-            "GÜLENSU",
-            "GÜLSUYU",
-            "İDEALTEPE",
-            "KÜÇÜKYALI MERKEZ",
-            "YALI",
-            "ZÜMRÜTEVLER",
+            "Altayçeşme",
+            "Altıntepe",
+            "Aydınevler",
+            "Bağlarbaşı",
+            "Başıbüyük",
+            "Büyükbakkalköy",
+            "Cevizli",
+            "Çınar",
+            "Esenkent",
+            "Feyzullah",
+            "Fındıklı",
+            "Girne",
+            "Gülensu",
+            "Gülsuyu",
+            "İdealtepe",
+            "Küçükyalı",
+            "Yalı",
+            "Zümrütevler",
         ];
         return $this->sendResponse($address, "success");
     }

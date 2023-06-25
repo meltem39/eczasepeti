@@ -15,20 +15,29 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+//    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+//
+//    'allowed_methods' => ['*'],
+//
+//    'allowed_origins' => ['*'],
+//
+//    'allowed_origins_patterns' => [],
+//
+//    'allowed_headers' => ['*'],
+//
+//    'exposed_headers' => [],
+//
+//    'max_age' => 0,
+//
+//    'supports_credentials' => false,
 
-    'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['*'],
-
-    'allowed_origins_patterns' => [],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
-
+    'paths' => ['api/*', 'api/admin/*', 'api/user/*', 'api/pharmacy/*', '*'],
+    'allowed_methods' => ['POST', 'GET', 'DELETE', 'PUT', '*'],
+    'allowed_origins' => ['http://localhost:8000', 'http://codedigitize.com'],
+    'allowed_origins_patterns' => ['*'],
+    'allowed_headers' => ['X-Custom-Header', 'Upgrade-Insecure-Requests', '*'],
+    'exposed_headers' => false,
+    'max_age' => false,
     'supports_credentials' => false,
 
 ];

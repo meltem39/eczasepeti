@@ -21,4 +21,6 @@ interface ListRepositoryInterface{
 
     public function nonMedicine($sub_medical_id, $id);
 
+    public function getNonMedicines($id);
+
 }
