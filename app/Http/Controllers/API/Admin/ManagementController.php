@@ -19,9 +19,12 @@ class ManagementController extends BaseController
     }
 
     public function pharmacyAccept($user_id){
-        $update = Pharmacy::whereId($user_id)->first()->update(["status" => "accept"]);
-        return $this->sendResponse($update, "success");
+        $user = Pharmacy::whereId($user_id)->first();
+        $result1 = Pharmacy::whereId($user_id)->first()->update(["status" => "accept"]);
+        $result2 = PharmacyList::whereId($user->organization_name)->first()->update(["approval" => "approved"]);
+        return $this->sendResponse($result1 && $result2, "success");
     }
+
     public function pharmacyDelete($user_id){
         $update = Pharmacy::whereId($user_id)->first()->update(["status" => "delete"]);
         return $this->sendResponse($update, "success");

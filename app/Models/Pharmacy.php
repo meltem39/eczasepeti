@@ -26,6 +26,7 @@ class Pharmacy extends Authenticatable
         'organization_name',
         'organization_type',
         'job',
+        'status',
         'title',
         'email',
         'password'

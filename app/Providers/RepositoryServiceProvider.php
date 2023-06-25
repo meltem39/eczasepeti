@@ -71,6 +71,6 @@ class RepositoryServiceProvider extends ServiceProvider
             );
         });
         $this->app->bind(NonMedicineRepositoryInterface::class, function ($app) { return new NonMedicineRepository(new NonMedicine); });
-        $this->app->bind(ShoppingRepositoryInterface::class, function ($app) { return new ShoppingRepository(new Shopping, new Order); });
+        $this->app->bind(ShoppingRepositoryInterface::class, function ($app) { return new ShoppingRepository(new Shopping, new Order, new User, new Pharmacy); });
     }
 }

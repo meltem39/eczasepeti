@@ -56,8 +56,8 @@ class MedicineRepository extends EloquentBaseRepository implements MedicineRepos
                     ->get();
                 return ["data" => $alternative, "where" => "1.2"];
             } else {
-                $pharmacy_detail = PharmacyList::whereId($pharmacy_id)->first();
-                $other_pharmacy = PharmacyList::where("id", "!=", $pharmacy_id)->where("address", $pharmacy_detail["address"])->where("status", "open")->first();
+                $pharmacy_detail = PharmacyList::whereId($pharmacy_id)->where("approval","approved")->first();
+                $other_pharmacy = PharmacyList::where("id", "!=", $pharmacy_id)->where("approval","approved")->where("address", $pharmacy_detail["address"])->where("status", "open")->first();
                 $pharmacy_alternative = Medicine::query()
                     ->where("pharmacy_id", $other_pharmacy["id"])
                     ->where("prescription", $prescription)

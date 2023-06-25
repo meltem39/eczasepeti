@@ -55,7 +55,7 @@ class ListRepository extends EloquentBaseRepository implements ListRepositoryInt
 
     public function pharmacyList($address)
     {
-        $pharmacies = $this->pharmacyListModel::where('address', $address)->where('status','open')->get();
+        $pharmacies = $this->pharmacyListModel::where('address', $address)->where("approval","approved")->where('status','open')->get();
         if($pharmacies) {
             return $pharmacies;
         }

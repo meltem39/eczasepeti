@@ -20,8 +20,19 @@ class ShoppingController extends BaseController
     public function basketDetail(){
         $login_user = $this->loginUser("user-api");
         $basket = $this->shoppingRepository->basketDetail($login_user->id);
-        if ($basket)
-            return $this->sendResponse($basket, "success");
+        if ($basket) {
+            $basket_id = $basket["basket_id"];
+            $total_fee = $basket["total_fee"];
+            $total_SGK_fee = $basket["total_SGK_fee"];
+            unset($basket["basket_id"]);
+            unset($basket["total_fee"]);
+            unset($basket["total_SGK_fee"]);
+            $data = [];
+            foreach ($basket as $value) {
+                $data[] = $value;
+            }
+            return $this->sendResponse(["basket_id" => $basket_id,"total_fee" => $total_fee, "total_SGK_fee" => $total_SGK_fee,"data" => $data], "success");
+        }
         return $this->sendNegativeResponse("empty");
     }
 

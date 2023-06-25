@@ -34,6 +34,7 @@ Route::middleware(['auth:user-api','scopes:user'])->group(function () {
 
         Route::group(["namespace" => "medicine", "prefix" => "medicine"], function () {
             Route::get("search/{pharmacy_id}", [MedicineController::class, "searchMedicine"]);
+            Route::get("prescription/pharmacies/{address}/{name}", [MedicineController::class, "pharmaciesWhichHasMedicines"]);
             Route::get("prescription/{pharmacy_id}/{name}", [MedicineController::class, "prescriptionDetail"]);
         });
 

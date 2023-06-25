@@ -4,7 +4,7 @@ namespace App\Repositories\User\ShoppingRepositories;
 
 interface ShoppingRepositoryInterface{
 
-    public function detail($basket, $medicines, $total = 0, $SGK_total = 0);
+    public function detail($basket, $medicines, $total = 0, $SGK_total = 0,$isUser);
 
     public function stock_update($basket, $operator);
 

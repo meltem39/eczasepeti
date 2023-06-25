@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\User\ShoppingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 //use App\Http\Controllers\LoginController;
@@ -38,6 +39,7 @@ Route::middleware(['auth:pharmacy-api','scopes:pharmacy'])->group(function () {
             });
             Route::group(["namespace" => "order", "prefix" => "order"], function () {
                Route::get("list", [OrderController::class, "orderList"]);
+               Route::get("{order_id}", [ShoppingController::class, "orderDetail"]);
                Route::post("update/{order_id}", [OrderController::class, "orderUpdate"]);
             });
             Route::group(["namespace" => "list","prefix" => "list"], function () {

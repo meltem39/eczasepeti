@@ -10,9 +10,11 @@ use App\Models\NonMedicalCategory;
 use App\Models\NonMedicalSubCategory;
 use App\Models\NonMedicine;
 use App\Models\Order;
+use App\Models\Pharmacy;
 use App\Models\PharmacyList;
 use App\Models\Prescriptions;
 use App\Models\Shopping;
+use App\Models\User;
 use App\Repositories\EloquentBaseRepository;
 use JasonGuru\LaravelMakeRepository\Repository\BaseRepository;
 //use Your Model
@@ -28,16 +30,20 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
      */
     protected $model;
     protected $orderModel;
+    protected $user;
+    protected $courrier;
 
-    public function __construct(Shopping $model, Order $orderModel)
+    public function __construct(Shopping $model, Order $orderModel, User $user, Pharmacy $courrier)
     {
         $this->model = $model;
         $this->orderModel = $orderModel;
+        $this->user = $user;
+        $this->pharmacy = $courrier;
 
         parent::__construct($this->model);
     }
 
-    public function detail($basket, $medicines, $total = 0, $SGK_total = 0){
+    public function detail($basket, $medicines, $total = 0, $SGK_total = 0,$isUser){
         $detail  = array();
         switch ($basket->is_medicine){
             case "0":
@@ -51,8 +57,11 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
                     array_push($detail, $non_medicine);
                     $total = $total + $non_medicine["fee"];
                 }
-                $detail["id"] = $basket->id;
-                $detail["total_fee"] = $total;
+                if($isUser) {
+                    $detail["basket_id"] = $basket->id;
+                    $detail["total_fee"] = $total;
+                }
+
                 return $detail;
             case "1":
                 foreach ($medicines as $content){
@@ -66,9 +75,12 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
                     $total = $total + $medicine["fee"];
                     $SGK_total = $SGK_total + $medicine["SGK_fee"];
                 }
-                $detail["id"] = $basket->id;
-                $detail["total_fee"] = $total;
-                $detail["total_SGK_fee"] = $SGK_total;
+                if($isUser) {
+                    $detail["basket_id"] = $basket->id;
+                    $detail["total_fee"] = $total;
+                    $detail["total_SGK_fee"] = $SGK_total;
+                }
+
                 return $detail;
         }
     }
@@ -104,7 +116,7 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
             foreach ((array)$content as $value) {
                 $medicines[] = $value;
             }
-            $detail = $this->detail($basket, $medicines);
+            $detail = $this->detail($basket, $medicines,0,0,true);
             return $detail;
         }
         return false;
@@ -250,6 +262,8 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
             if ($shopping->prescription_id)
                 Prescriptions::whereId($shopping->prescription_id)->update(["status" =>"0"]);
             $shopping->update(["status" => "cancelled"]);
+            $carrier_id = $data["carrier_id"];
+            $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "wait"]);
             return $update;
         }
         return false;
@@ -260,12 +274,15 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
         $basket = $this->model->whereId($info->basket_id)->select("is_medicine", "prescription_id", "content","id")->first();
         $content = json_decode($basket->content);
         $medicines = array();
-        $detail = array();
         foreach ((array)$content as $value) {
             $medicines[] = $value;
         }
-        $detail = $this->detail($basket, $medicines);
-        $info["basket"] = $detail;
+        $detail = $this->detail($basket, $medicines,0,0,false);
+        $basketdetail = [];
+        foreach ($detail as $value) {
+            $basketdetail[] = $value;
+        }
+        $info["basket"] = $basketdetail;
         return $info;
     }
 
@@ -275,6 +292,34 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
         $on_the_way_list = $this->orderModel->where("pharmacy_id", $pharmacy_id)->where("order_status", "on_the_way")->get();
         $delivered_list = $this->orderModel->where("pharmacy_id", $pharmacy_id)->where("order_status", "delivered")->get();
         $canceled_list = $this->orderModel->where("pharmacy_id", $pharmacy_id)->where("order_status", "canceled")->get();
+        foreach ($taken_list as $taken) {
+            $attacheduser = $this->user->where("id",$taken->user_id)->get()->first();
+            $taken["user"] = $attacheduser;
+        }
+        foreach ($preparing_list as $preparing) {
+            $attacheduser = $this->user->where("id",$preparing->user_id)->get()->first();
+            $preparing["user"] = $attacheduser;
+        }
+        foreach ($on_the_way_list as $on_the_way) {
+            $attacheduser = $this->user->where("id",$on_the_way->user_id)->get()->first();
+            $attachedcourrier = $this->pharmacy->where("id",$on_the_way->carrier_id)->get()->first();
+            $on_the_way["user"] = $attacheduser;
+            $on_the_way["courrier"]  = $attachedcourrier;
+        }
+        foreach ($delivered_list as $delivered) {
+            $attacheduser = $this->user->where("id",$delivered->user_id)->get()->first();
+            $attachedcourrier = $this->pharmacy->where("id",$delivered->carrier_id)->get()->first();
+            $delivered["user"] = $attacheduser;
+            $delivered["courrier"]  = $attachedcourrier;
+        }
+        foreach ($canceled_list as $canceled) {
+            $attacheduser = $this->user->where("id",$canceled->user_id)->get()->first();
+            $attachedcourrier = $this->pharmacy->where("id",$canceled->carrier_id)->get()->first();
+            $canceled["user"] = $attacheduser;
+            if($attachedcourrier) {
+                $canceled["courrier"]  = $attachedcourrier;
+            }
+        }
         $list = [
             "taken" => $taken_list,
             "preparing" => $preparing_list,
@@ -288,19 +333,28 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
     public function updateStatus($order_id, $data){
         switch ($data["status"]){
             case "preparing":
-                $update = $this->orderModel->whereId($order_id)->first()->update(["status" => "preparing"]);
+                $update = $this->orderModel->whereId($order_id)->first()->update(["order_status" => "preparing"]);
+                break;
             case "on_the_way":
                 $carrier_id = $data["carrier_id"];
-                $update = $this->orderModel->whereId($order_id)->first()->update(["status" => "on_the_way", "carrier_id" => $carrier_id]);
+                $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "accept"]);
+                $update = $this->orderModel->whereId($order_id)->first()->update(["order_status" => "on_the_way", "carrier_id" => $carrier_id]);
+                break;
             case "delivered":
-                $update = $this->orderModel->whereId($order_id)->first()->update(["status" => "delivered"]);
+                $update = $this->orderModel->whereId($order_id)->first()->update(["order_status" => "delivered"]);
+                $carrier_id = $data["carrier_id"];
+                $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "wait"]);
+                break;
             case "canceled":
                 $canceled_by = "pharmacy";
                 $canceled_cause = $data["canceled_cause"];
-                $update = $this->orderModel->whereId($order_id)->first()->update(["status" => "canceled", "canceled_by" => $canceled_by, "canceled_cause" => $canceled_cause]);
+                $carrier_id = $data["carrier_id"];
+                $this->pharmacy->whereId($carrier_id)->first()->update(["status" => "wait"]);
+                $update = $this->orderModel->whereId($order_id)->first()->update(["order_status" => "canceled", "canceled_by" => $canceled_by, "canceled_cause" => $canceled_cause]);
                 $select_order = $this->orderModel->whereId($order_id)->first();
                 $basket = $this->model->whereId($select_order->basket_id)->first();
                 $this->stock_update($basket, "+");
+                break;
         }
         return $update;
     }

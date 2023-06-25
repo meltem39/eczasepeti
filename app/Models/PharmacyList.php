@@ -13,6 +13,7 @@ class PharmacyList extends Model
         "name",
         "city",
         "district",
+        "approval",
         "address",
     ];
 }

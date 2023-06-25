@@ -6,16 +6,19 @@ use App\Http\Controllers\API\BaseController;
 use App\Http\Controllers\Controller;
 use App\Models\Medicine;
 use App\Repositories\Pharmacy\MedicineRepositories\MedicineRepositoryInterface;
+use App\Repositories\User\ListRepositories\ListRepositoryInterface;
 use App\Repositories\User\PrescriptionRepositories\PrescriptionRepositoryInterface;
 use Illuminate\Http\Request;
 
 class MedicineController extends BaseController
 {
     private MedicineRepositoryInterface $medicineRepository;
+    private ListRepositoryInterface $listRepository;
 
     public function __construct(MedicineRepositoryInterface $medicineRepository,
-                                PrescriptionRepositoryInterface $prescriptionRepository
-    ){
+                                PrescriptionRepositoryInterface $prescriptionRepository,
+                                ListRepositoryInterface $listRepository
+    ){  $this->listRepository = $listRepository;
         $this->medicineRepository = $medicineRepository;
         $this->prescriptionRepository = $prescriptionRepository;
     }
@@ -32,6 +35,83 @@ class MedicineController extends BaseController
 //    public function searchNonMedicine(){
 //
 //    }
+    public function pharmaciesWhichHasMedicines($address ,$name) {
+        $pharmacies = $this->listRepository->pharmacyList($address);
+        $pharmacyList = [];
+        foreach ($pharmacies as $pharmacy) {
+            $onlyOk = $this->prescriptionDetails($pharmacy->id,$name);
+            if($onlyOk["status"]) {
+                $pharmacyList[] = $pharmacy;
+            }
+        }
+        if($pharmacyList) {
+            return $this->sendResponse($pharmacyList,"Pharmacies");
+        } else {
+            return $this->sendNegativeResponse("Eczane Bulunamadi");
+        }
+    }
+
+    public function prescriptionDetails($pharmacy_id ,$name){
+        $login_user = $this->loginUser("user-api");
+        $find = $this->prescriptionRepository->detail($name, $login_user->id);
+        if($find){
+            $same_same = 0;
+            $same_diff = 0;
+            $diff_same = 0;
+            $diff_diff = 0;
+            $total = 0;
+            $sgk_total = 0;
+            $find["medicines"] = json_decode($find["medicines"]);
+            $i=0;
+            foreach ($find["medicines"] as $medicine){
+                $control[$i] = $this->medicineRepository->searchMedicine($medicine->name, $pharmacy_id, $medicine->prescription);
+                if ($control[$i]){
+                    if ($control[$i]["where"] == "1.1"){
+                        $same_same = $same_same +1;
+                        $arr["same_same"][] = $control[$i]["data"];
+                    }
+                    if ($control[$i]["where"] == "1.2"){
+                        $same_diff = $same_diff +1;
+                        $control[$i]["data"][] = ["original_name" => $medicine->name];
+                        $arr["same_diff"][] = $control[$i]["data"];
+                    }
+                    if ($control[$i]["where"] == "2.1"){
+                        $diff_same = $diff_same +1;
+                        $arr["diff_same"][] = $control[$i]["data"];
+                    }
+                    if ($control[$i]["where"] == "2.2"){
+                        $diff_diff = $diff_diff +1;
+                        $control[$i]["data"][] = ["original_name" => $medicine->name];
+                        $arr["diff_diff"][] = $control[$i]["data"];
+                    }
+                    $i = $i+1;
+                } else {
+                    $error[$i] = $medicine;
+                }
+            }
+            if ($same_same>0 && $i == $same_same){
+                foreach ($arr["same_same"] as $medicine){
+                    $total = $total+$medicine["fee"];
+                    $sgk_total = $sgk_total + $medicine["SGK_fee"];
+                }
+                return ["medicine_list" => $arr["same_same"], "total" => $total, "sgk_total" => $sgk_total,"status" => true];
+            } else {
+                $big_Arr = array();
+                if ($same_same>0)
+                    $big_Arr["ok"] = $arr["same_same"];
+                if ($same_diff>0)
+                    $big_Arr["medicine_alternative"] = $arr["same_diff"];
+                if ($diff_same>0)
+                    $big_Arr["pharmacy_alternative"] = $arr["diff_same"];
+                if ($diff_diff>0)
+                    $big_Arr["full_alternative"] = $arr["diff_diff"];
+                $big_Arr["status"] = false;
+                return $big_Arr;
+            }
+        } else
+            $big_Arr["status"] = false;
+        return ["data" => "error"];
+    }
 
     public function prescriptionDetail($pharmacy_id ,$name){
         $login_user = $this->loginUser("user-api");
