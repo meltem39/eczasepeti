@@ -115,9 +115,15 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
         $SGK_total = 0;
         switch ($data["is_medicine"]){
             case "0":
-                if($data["content"]){
-                    foreach ($data["content"] as $non_medicine){
+                if($data["non_medicine_content"]){
+                    foreach ($data["non_medicine_content"] as $non_medicine){
                         $fee = NonMedicine::whereId($non_medicine)->select("fee")->first()->fee;
+                        $total = $total+$fee;
+                    }
+                }
+                if($data["medicine_content"]){
+                    foreach ($data["medicine_content"] as $non_medicine){
+                        $fee = Medicine::whereId($non_medicine)->select("fee")->first()->fee;
                         $total = $total+$fee;
                     }
                 }
@@ -161,6 +167,58 @@ class ShoppingRepository extends EloquentBaseRepository implements ShoppingRepos
                 return $create;
         }
     }
+
+    //public function addBasket($user_id, $data){
+    //    $total = 0;
+    //    $SGK_total = 0;
+    //    switch ($data["is_medicine"]){
+    //        case "0":
+    //            if($data["content"]){
+    //                foreach ($data["content"] as $non_medicine){
+    //                    $fee = NonMedicine::whereId($non_medicine)->select("fee")->first()->fee;
+    //                    $total = $total+$fee;
+    //                }
+    //            }
+    //            $data["total"] = $total;
+    //            $data["user_id"] = $user_id;
+    //            $data["status"] = "adding";
+    //            $data["content"] = json_encode($data["content"]);
+    //            $control = $this->model->where("user_id", $user_id)->where("status", "adding")->first();
+    //            if ($control)
+    //                $this->model->whereId($control->id)->update(["status" => "cancelled"]);
+    //            $create = $this->model->create($data);
+    //            return $create;
+    //        case "1":
+    //            $content = array();
+    //            $prescription = Prescriptions::whereId($data["prescription_id"])->select("medicines")->first()->medicines;
+    //            $prescription = json_decode($prescription);
+    //            $medicines = array();
+    //            foreach ((array)$prescription as $value) {
+    //                $medicines[] = $value;
+    //            }
+    //            $i = 1;
+    //            foreach ($medicines as $medicine){
+    //                $detail = Medicine::query()
+    //                    ->where("pharmacy_id", $data["pharmacy_id"])
+    //                    ->where("medicine_name", $medicine->name)
+    //                    ->where("stock", "!=", 0)->select("id","SGK_fee", "fee")->first();
+    //                $total = $total + $detail["fee"];
+    //                $SGK_total = $SGK_total + $detail["SGK_fee"];
+    //                $content[$i] = $detail["id"];
+    //                $i++;
+    //            }
+    //            $data["total"] = $total;
+    //            $data["SGK_total"] = $SGK_total;
+    //            $data["user_id"] = $user_id;
+    //            $data["status"] = "adding";
+    //            $data["content"] = json_encode($content);
+    //            $control = $this->model->where("user_id", $user_id)->where("status", "adding")->first();
+    //            if ($control)
+    //                $this->model->whereId($control->id)->update(["status" => "cancelled"]);
+    //            $create = $this->model->create($data);
+    //            return $create;
+    //    }
+    //}
 
     public function buyBasket($user_id, $data, $basket_id){
         $data["basket_id"] = $basket_id;

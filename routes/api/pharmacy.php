@@ -40,5 +40,8 @@ Route::middleware(['auth:pharmacy-api','scopes:pharmacy'])->group(function () {
                Route::get("list", [OrderController::class, "orderList"]);
                Route::post("update/{order_id}", [OrderController::class, "orderUpdate"]);
             });
+            Route::group(["namespace" => "list","prefix" => "list"], function () {
+                Route::get("courriers",[OrderController::class, "currierList"]);
+            });
         });
 });
